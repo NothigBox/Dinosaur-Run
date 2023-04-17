@@ -51,10 +51,14 @@ public class UIManager : GameStateObserver
 
     protected override void Waiting()
     {
-        rankPanel.SetActive(true);
         indicationsPanel.SetActive(true);
 
-        if(PlayerName == null) PlayerName = nameInput.text;
+        if (GameManager.Instance.Mode == GameMode.Web) 
+        {
+            rankPanel.SetActive(true);
+
+            if(PlayerName == null) PlayerName = nameInput.text;
+        }
     }
 
     protected override void Playing()

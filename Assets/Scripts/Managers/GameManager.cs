@@ -3,7 +3,9 @@ using SCENE = UnityEngine.SceneManagement.SceneManager;
 
 public class GameManager : MonoBehaviour
 {
-    [Header("Speed")]
+    [SerializeField] private GameMode mode;
+
+    [Space, Header("Speed")]
     [SerializeField] private float speed;
     [SerializeField] private float speedIncreasePercentage;
     [Tooltip("The maximum value that can reach the Time.timeScale")]
@@ -39,6 +41,7 @@ public class GameManager : MonoBehaviour
     private static GameManager instance;
     public static GameManager Instance => instance;
 
+    public GameMode Mode => mode;
     public GameState State { get; private set; }
 
     private void Awake()
@@ -61,36 +64,42 @@ public class GameManager : MonoBehaviour
         dinosaur.OnDead += StopGame;
         score.OnScoreAdded += ui.UpdateScore;
 
-        web.OnRankingDeleted += () => StartCoroutine(ui.ResetRanking());
-
-        web.OnRankingGet += (rankingInfos) =>
+        if (Mode == GameMode.Web)
         {
-            ui.UpdateRanking(rankingInfos);
-            canPutData = true;
-            canDeleteData = true;
-        };
+            web.OnRankingDeleted += () => StartCoroutine(ui.ResetRanking());
 
-        SetGameState(GameState.Home);
+            web.OnRankingGet += (rankingInfos) =>
+            {
+                ui.UpdateRanking(rankingInfos);
+                canPutData = true;
+                canDeleteData = true;
+            };
+        }
+
+        SetGameState(Mode == GameMode.Web? GameState.Home : GameState.Waiting);
 
         if (UIManager.PlayerName != null) StartWaiting();
     }
 
     private void Update()
     {
-        if (deleteData && canDeleteData)
+        if (Mode == GameMode.Web)
         {
-            deleteData = false;
-            canDeleteData = false;
+            if (deleteData && canDeleteData)
+            {
+                deleteData = false;
+                canDeleteData = false;
 
-            web.DeleteData();
-        }
+                web.DeleteData();
+            }
 
-        if (putData && canPutData)
-        {
-            putData = false;
-            canPutData = false;
+            if (putData && canPutData)
+            {
+                putData = false;
+                canPutData = false;
 
-            web.PutData(jsonPath);
+                web.PutData(jsonPath);
+            }
         }
 
         if (State == GameState.Home) return;
@@ -185,7 +194,10 @@ public class GameManager : MonoBehaviour
 
     private void OnWaiting()
     {
-        web.GetData();
+        if (Mode == GameMode.Web) 
+        {
+            web.GetData();
+        }
     }
 
     private void OnPlaying()
@@ -195,7 +207,10 @@ public class GameManager : MonoBehaviour
 
     private void OnRestarting()
     {
-        web.PostData(new RankSlotData(UIManager.PlayerName, score.CurrentScore));
+        if (Mode == GameMode.Web)
+        {
+            web.PostData(new RankSlotData(UIManager.PlayerName, score.CurrentScore));
+        }
 
         StopAllCoroutines();
 
@@ -219,3 +234,4 @@ public class GameManager : MonoBehaviour
 }
 
 public enum GameState { Home, Waiting, Playing, Restarting }
+public enum GameMode { Local, Web }
