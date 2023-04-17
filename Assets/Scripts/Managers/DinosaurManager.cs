@@ -9,7 +9,7 @@ public class DinosaurManager : MonoBehaviour
 
     private bool canJump;
     private Animator animator;
-    private Rigidbody2D rigidbody;
+    new private Rigidbody2D rigidbody;
 
     public event Action OnDead;
 

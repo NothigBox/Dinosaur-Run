@@ -8,6 +8,8 @@ public class ScoreManager : GameStateObserver
 
     private int currentScore;
 
+    public int CurrentScore => currentScore;
+
     public void AddScore(int score)
     {
         currentScore += Mathf.Abs(score);

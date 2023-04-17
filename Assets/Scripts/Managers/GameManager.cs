@@ -18,11 +18,20 @@ public class GameManager : MonoBehaviour
     [Space, Header("Managers")]
     [SerializeField] private UIManager ui;
     [SerializeField] private MapManager map;
+    [SerializeField] private WebManager web;
     [SerializeField] private ScoreManager score;
     [SerializeField] private DinosaurManager dinosaur;
+    
+    [Space, Header("Ranking")]
+    [SerializeField] private bool deleteData;
+    [Tooltip("The path in Resources where to find a JSON pre-config for the ranking.")]
+    [SerializeField] private string jsonPath;
+    [SerializeField] private bool putData;
 
     private GameStateObserver[] stateObservers;
 
+    private bool canPutData;
+    private bool canDeleteData;
     private bool canRestart;
     private float scoreTimer;
     private float gameplayTimer;
@@ -37,6 +46,8 @@ public class GameManager : MonoBehaviour
         instance = this;
 
         canRestart = false;
+        canPutData = true;
+        canDeleteData = true;
         scoreTimer = 0f;
         gameplayTimer = 0f;
 
@@ -50,16 +61,37 @@ public class GameManager : MonoBehaviour
         dinosaur.OnDead += StopGame;
         score.OnScoreAdded += ui.UpdateScore;
 
+        web.OnRankingDeleted += () => StartCoroutine(ui.ResetRanking());
+
+        web.OnRankingGet += (rankingInfos) =>
+        {
+            ui.UpdateRanking(rankingInfos);
+            canPutData = true;
+            canDeleteData = true;
+        };
+
         SetGameState(GameState.Home);
 
-        if (UIManager.PlayerName != null)
-        {
-            StartWaiting();
-        }
+        if (UIManager.PlayerName != null) StartWaiting();
     }
 
     private void Update()
     {
+        if (deleteData && canDeleteData)
+        {
+            deleteData = false;
+            canDeleteData = false;
+
+            web.DeleteData();
+        }
+
+        if (putData && canPutData)
+        {
+            putData = false;
+            canPutData = false;
+
+            web.PutData(jsonPath);
+        }
 
         if (State == GameState.Home) return;
 
@@ -153,6 +185,7 @@ public class GameManager : MonoBehaviour
 
     private void OnWaiting()
     {
+        web.GetData();
     }
 
     private void OnPlaying()
@@ -162,6 +195,8 @@ public class GameManager : MonoBehaviour
 
     private void OnRestarting()
     {
+        web.PostData(new RankSlotData(UIManager.PlayerName, score.CurrentScore));
+
         StopAllCoroutines();
 
         Invoke(nameof(ActivateRestart), restartGameDelay);

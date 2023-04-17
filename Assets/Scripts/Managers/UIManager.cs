@@ -1,10 +1,11 @@
-using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
 public class UIManager : GameStateObserver
 {
+    const int RANKING_SLOTS_COUNT = 5;
     const int NAME_CHARACTERS_COUNT = 3;
 
     [Header("Panels")]
@@ -19,6 +20,7 @@ public class UIManager : GameStateObserver
 
     [Space, Header("Score")]
     [SerializeField] private TextMeshProUGUI scoreLabel;
+    [SerializeField] private TextMeshProUGUI rankSlotLabel;
 
     public static string PlayerName { get; private set; }
 
@@ -52,7 +54,7 @@ public class UIManager : GameStateObserver
         rankPanel.SetActive(true);
         indicationsPanel.SetActive(true);
 
-        PlayerName = nameInput.text;
+        if(PlayerName == null) PlayerName = nameInput.text;
     }
 
     protected override void Playing()
@@ -69,6 +71,53 @@ public class UIManager : GameStateObserver
     public void UpdateScore(int currentScore)
     {
         scoreLabel.text = currentScore.ToString("000000");
+    }
+
+    public void UpdateRanking(List<RankSlotData> rankingInfo)
+    {
+        for (int i = 0; i < RANKING_SLOTS_COUNT; i++)
+        {
+            var label = rankSlotLabel;
+            int rank = i + 1;
+            string resultText;
+
+            if(rankingInfo == null) 
+            {
+                resultText = rank + ". | --- | 000000";
+                label.text = resultText;
+                label.color = Color.gray;
+                continue;
+            }
+
+            if (i > 0)
+            {
+                label = Instantiate(rankSlotLabel);
+                label.transform.SetParent(rankSlotLabel.transform.parent);
+            }
+
+            if (i >= rankingInfo.Count)
+            {
+                resultText = rank + ". | --- | 000000";
+                label.color = Color.gray;
+            }
+            else
+            {
+                var info = rankingInfo[i];
+                resultText = string.Format("{0}. | {1} | {2}", rank, info.Name, info.Score.ToString("000000"));
+                if (i > 0) label.color = Color.black;
+            }
+
+            label.text = resultText;
+        }
+    }
+
+    public IEnumerator ResetRanking()
+    {
+        while (rankSlotLabel.transform.parent.childCount > 1)
+        {
+            Destroy(rankSlotLabel.transform.parent.GetChild(1).gameObject);
+            yield return null;
+        }
     }
 }
 
